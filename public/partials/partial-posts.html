@@ -1,0 +1,27 @@
+<!-- partial posts template that only contains the html to show comments for a single post -->
+
+<!-- Display the post title as the page header and make it a link if it has a link -->
+<div class="page-header">
+    <h3>
+    	<!--post property below is a property of the $scope variable injected into this partial view because the ui-router dependent module is routing this view injecting with the PostsCtrl which sets the post property into $scope variable -->
+
+	    <a href="{{post.link}}" ng-show="post.link">{{post.title}}</a>
+		<span ng-hide="post.link">{{post.title}}</span>
+	</h3>
+</div>
+
+<!-- List out the existing comments to a post -->
+<div ng-repeat="comment in post.comments | orderBy: '-upvotes'">
+	<span class="glyphicon glyphicon-thumbs-up" ng-click="incrementUpvotes(comment)"></span>
+	{{comment.upvotes}} - by {{comment.author}}
+	<span style="font-size:20px; margin-left:10px;">{{comment.body}}</span>
+</div>
+
+<!-- Post a new comment -->
+<form ng-submit="addComment()" style="margin-top:30px;">
+	<h3>Add a new comment</h3>
+	<div class="form-group">
+		<input type="text" class="form-control" placeholder="Comment" ng-model="body"></input>
+	</div>
+	<button type="submit" class="btn btn-primary">Post</button>
+</form>

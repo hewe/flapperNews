@@ -1,0 +1,31 @@
+<div class="page-header">
+    <h1>Flapper News</h1>
+</div>
+
+<!-- List out the posts order by upvotes descending. The posts variable here is available because it is set on $scope as a property and angular ui-router
+injects the $scope variabl einto this partial template as configured by the state and routing -->
+<div ng-repeat="post in posts | orderBy: '-upvotes'">
+    <span style="font-size:20px; margin-left:10px;">
+    	<!-- the stuff that is inside the {{}} is called angular expressions and can access things inside the $scope variable or run any javascript -->
+		<!-- the ng-show and ng-hide are directives that show or hide based on a boolean condition or if a property exists like post.link -->
+       <a ng-show="post.link" href={{post.link}}>{{post.title}}</a>
+	</span>
+    <span ng-hide="post.link">{{post.title}}</span> - upvotes: {{post.upvotes}}
+    <!-- ng-click is angular directive that setup a click event handling to call a function that is part of the $scope variable that is setup in this templates controller-->
+    <span class="glyphicon glyphicon-thumbs-up" ng-click="incrementUpvotes(post)"></span>
+    <!-- When iterating over an array, the ng-repeat directive makes an $index variable available along with each item in the array. -->
+    <span><a href="#/posts/{{$index}}">Comments</a></span>
+</div>
+<div>
+	<!-- ng-submit is like ng-click but for forms -->
+    <form ng-submit="addPost()" style="margin-top:30px;">
+        <h3>Add a new post</h3>
+        <div class="form-group">
+            <input type="text" class="form-control" placeholder="Title" ng-model="title"></input>
+        </div>
+        <div class="form-group">
+            <input type="text" class="form-control" placeholder="Link" ng-model="link">
+        </div>
+        <button type="submit" class="btn btn-primary">Post</button>
+    </form>
+</div>
