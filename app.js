@@ -5,8 +5,22 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
+var mongoose = require('mongoose');
+// require('./models/Posts');
+// require('./models/Comments');
+
+// a trick to just require ./models sub directory to get all mongoose
+// models because i've defined a ./models/index.js which requires the
+// mactual model files like Post and Comment and then exporting them 
+// via the module.exports.Post = require('./models/Post') syntax;
+var models = require('./models');
+mongoose.connect('mongodb://<user>:<pass>@ds051625.mongolab.com:51625/flapper-news');
+
+// require in the different route configurations
 var routes = require('./routes/index');
+var posts = require('./routes/posts');
 var users = require('./routes/users');
+
 
 var app = express();
 
@@ -22,7 +36,9 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// use the different route middlewares
 app.use('/', routes);
+app.use('/posts', posts);
 app.use('/users', users);
 
 // catch 404 and forward to error handler
