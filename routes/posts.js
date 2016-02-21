@@ -64,10 +64,81 @@ router.param('postId', function(req, res, next, postId){
 	});
 });
 
-router.get('/:postId', function(req, res){
+router.get('/:postId', function(req, res, next){
 	console.log(req.method, req.url);
 	console.log('get on /:postId');
-	res.json(req.post);
+
+	// mongoose method populate takes string of a field/fields to
+	// populate, a callback function of error and the  object that
+	// is trying to populate not the field being populated
+	req.post.populate('comments', function (err, post) {
+		if (err){
+			return next(err);
+		}
+		res.json(post);
+	});
+});
+
+router.put('/:postId/upvote', function(req, res, next){
+	req.post.upvote(function(err, post){
+		if (err){
+			return next(err);
+		}
+
+		res.json(post);
+	});
+});
+
+router.post(':postId/comments', function(req, res, next){
+	var commentObj = new Comment(req.body);
+	commentObj.post = req.post;
+
+	commentObj.save(function(err, comment){
+		if (err){
+			return next(err);
+		}
+
+		req.post.comments.push(commentObj);
+		req.post.save(function(err, post){
+			if(err){
+				return next(err);
+			}
+
+			res.json(comment);
+		});
+	});
+});
+
+router.param('commentId', function(req, res, next, commentId){
+	var query = Comment.findById(commentId);
+
+	query.exec(function(err, comment){
+		if (err){
+			return next(err);
+		}
+
+		if(!comment){
+			return next(new Error('can\'t find comment'));
+		}
+
+		req.comment = comment;
+		return next();
+	});
+
+});
+
+router.get(':postId/:commentId', function(req, res, next){
+	res.json(req.comment);
+});
+
+router.put(':postId/:commentId/upvote', function(req, res, next){
+	req.comment.upvote(function(err, comment){
+		if (err){
+			return next(err);
+		}
+
+		res.json(comment);
+	});
 });
 
 module.exports = router;

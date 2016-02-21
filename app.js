@@ -14,7 +14,7 @@ var mongoose = require('mongoose');
 // mactual model files like Post and Comment and then exporting them 
 // via the module.exports.Post = require('./models/Post') syntax;
 var models = require('./models');
-mongoose.connect('mongodb://<user>:<pass>@ds051625.mongolab.com:51625/flapper-news');
+mongoose.connect('mongodb://flapper:news@ds051625.mongolab.com:51625/flapper-news');
 
 // require in the different route configurations
 var routes = require('./routes/index');

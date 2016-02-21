@@ -13,12 +13,20 @@ app.config([
 			.state('home', {
 				url: '/home',
 				templateUrl: 'partials/partial-home.html',
-				controller: 'MainCtrl'
+				controller: 'MainCtrl',
+				// using the resolve property here so anything define within the resolve will get executed before the state's controller actually get instantiated
+				// so for this we defined a postsPropmise which is a function that requires angular to inject the postsService then in the function we get all the posts
+				// this will make the $scope.posts object populated with posts before controller is instantiated and page will show all the existing posts
+				resolve: {
+					postsPromise: ['postsService', function(postsService){
+						return postsService.getAll();
+					}]
+				}
 			})
 			.state('posts', {
 				url: '/posts/{id}', // The {id} is a query parameter that can be injected into the PostsCtrl by requring the $stateParams service and access it via $stateParams.id
 				templateUrl: 'partials/partial-posts.html',
-				controller: 'PostsCtrl'
+				controller: 'PostsCtrl',
 			});
 
 		$urlRouterProvider.otherwise('home');
@@ -101,8 +109,20 @@ app.controller('PostsCtrl', [
 ]);
 
 
-app.service('postsService', [function(){
+app.service('postsService', ['$http', function($http){
 	this.posts = [];
+
+	this.getAll = function(){
+
+		// using arrow function for success callback so i can still
+		// reference this.posts and it will be the postsService's
+		// posts object
+		var posts = $http.get('/posts').success((posts) => {
+			angular.copy(posts, this.posts);
+		});
+
+		return posts;
+	};
 }]);
 
 
