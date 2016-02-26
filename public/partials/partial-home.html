@@ -12,9 +12,9 @@ injects the $scope variabl einto this partial template as configured by the stat
 	</span>
     <span ng-hide="post.link">{{post.title}}</span> - upvotes: {{post.upvotes}}
     <!-- ng-click is angular directive that setup a click event handling to call a function that is part of the $scope variable that is setup in this templates controller-->
-    <span class="glyphicon glyphicon-thumbs-up" ng-click="incrementUpvotes(post)"></span>
+    <span class="glyphicon glyphicon-thumbs-up" ng-click="upvotePost(post)"></span>
     <!-- When iterating over an array, the ng-repeat directive makes an $index variable available along with each item in the array. -->
-    <span><a href="#/posts/{{$index}}">Comments</a></span>
+    <span><a href="#/posts/{{post._id}}">Comments</a></span>
 </div>
 <div>
 	<!-- ng-submit is like ng-click but for forms -->

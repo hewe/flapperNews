@@ -89,7 +89,7 @@ router.put('/:postId/upvote', function(req, res, next){
 	});
 });
 
-router.post(':postId/comments', function(req, res, next){
+router.post('/:postId/comments', function(req, res, next){
 	var commentObj = new Comment(req.body);
 	commentObj.post = req.post;
 
@@ -127,11 +127,11 @@ router.param('commentId', function(req, res, next, commentId){
 
 });
 
-router.get(':postId/:commentId', function(req, res, next){
+router.get('/:postId/:commentId', function(req, res, next){
 	res.json(req.comment);
 });
 
-router.put(':postId/:commentId/upvote', function(req, res, next){
+router.put('/:postId/:commentId/upvote', function(req, res, next){
 	req.comment.upvote(function(err, comment){
 		if (err){
 			return next(err);

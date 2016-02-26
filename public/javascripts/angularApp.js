@@ -15,10 +15,10 @@ app.config([
 				templateUrl: 'partials/partial-home.html',
 				controller: 'MainCtrl',
 				// using the resolve property here so anything define within the resolve will get executed before the state's controller actually get instantiated
-				// so for this we defined a postsPropmise which is a function that requires angular to inject the postsService then in the function we get all the posts
-				// this will make the $scope.posts object populated with posts before controller is instantiated and page will show all the existing posts
+				// so for this we defined a postsArrayObj and tied a factory function that requires angular to inject the postsService then in the function we 
+				// get all the posts this will make the $scope.posts object populated with posts before controller is instantiated and page will show all the existing posts
 				resolve: {
-					postsPromise: ['postsService', function(postsService){
+					postsArrayObj: ['postsService', function(postsService){
 						return postsService.getAll();
 					}]
 				}
@@ -27,6 +27,15 @@ app.config([
 				url: '/posts/{id}', // The {id} is a query parameter that can be injected into the PostsCtrl by requring the $stateParams service and access it via $stateParams.id
 				templateUrl: 'partials/partial-posts.html',
 				controller: 'PostsCtrl',
+				// using the resolve property here so anything define within the resolve will get executed before the state's controller actually get instantiated
+				// so for this we defined a singlePostObj and tied a factory function that requires angular to inject the $stateParms service and postsService then 
+				// in the function we get the post by id. Lastly the result of the factory function will be set on the singPostObject. The singlePostObj is cached into 
+				// $scope than can be injected into the state's controller. 
+				resolve: {
+					singlePostObj: ['$stateParams', 'postsService', function($stateParams, postsService){
+						return postsService.getPostById($stateParams.id);
+					}]
+				}
 			});
 
 		$urlRouterProvider.otherwise('home');
@@ -56,55 +65,67 @@ app.controller('MainCtrl', [
 
 		$scope.addPost = function() {
 			if ($scope.title){
-				$scope.posts.push({
-					title  : $scope.title, 
-					upvotes: 0,
-					link   : $scope.link,
-					comments : [
-						{ author: 'Joe', body: 'Cool post!', upvotes: 0 },
-						{ author: 'Bob', body: 'Greate idea but all is bad!', upvotes: 0 },
-					]
+				postsService.create({
+					title: $scope.title,
+					link: $scope.link
 				});
+
 				$scope.title = '';
 				$scope.link = '';
 			}
 		};
 
-		// $scope.incrementUpvotes = function(post){
+		// $scope.upvotePost = function(post){
 		// 	post.upvotes += 1;
 		// };
 		
 		/* arror function of es6 */
-		$scope.incrementUpvotes = (post) => {
-			post.upvotes += 1;
+		$scope.upvotePost = (post) => {
+			postsService.upvote(post);
 		};
 	}
 ]);
 
 
 /**
- * Post controller depends on $scope, $stateParams variable which is injected by ui-router and the postsService
- * $stateParams variable has 'id' property because thats how we specified in our route above
- * @param  {[type]} $scope                       [description]
- * @param  {[type]} $stateParams                 [description]
- * @param  {[type]} postsService){		$scope.post [description]
- * @return {[type]}                              [description]
+ * Post controller depends on $scope, postsService, singlePostObj variable which is injected by ui-router. The 
+ * singlePostObj object is cached into the $scope by the ui-router setup of the posts state's resolve object. 
+ * 
+ * @param  {[type]} $scope                        [description]
+ * @param  {[type]} postsService                  [description]
+ * @param  {[type]} singlePostObj){		$scope.post [description]
+ * @param  {String} function                      errorCallback(response){											}				);			}			$scope.body [description]
+ * @return {[type]}                               [description]
  */
 app.controller('PostsCtrl', [
 	'$scope', 
-	'$stateParams', 
-	'postsService', 
-	function($scope, $stateParams, postsService){
-		$scope.post = postsService.posts[$stateParams.id];
+	'postsService',
+	'singlePostObj',
+	function($scope, postsService, singlePostObj){
+		$scope.post = singlePostObj;
 
 		$scope.addComment = function() {
 			if ($scope.body) {
-				$scope.post.comments.push(
-					{ author: 'user', body: $scope.body, upvotes: 0}
+
+				// addComment function returns a HttpPromse, must setup
+				// handlers here. 
+				postsService.addComment(singlePostObj, { author: 'user', body: $scope.body }).then(
+					function successCallback(response){
+						singlePostObj.comments.push(response.data);
+					},
+					function errorCallback(response){
+						//doesn't need to define this but here for tutorial
+					}
 				);
 			}
 			$scope.body = '';
 		};
+
+		$scope.upvoteComment = function(comment) {
+
+			// upvoteComment already has the handlers so no need here.
+			postsService.upvoteComment(singlePostObj, comment);
+		}
 	}
 ]);
 
@@ -123,8 +144,87 @@ app.service('postsService', ['$http', function($http){
 
 		return posts;
 	};
+
+	this.create = function(post){
+		var post = $http.post('/posts', post).success((postCreated) => {
+			this.posts.push(postCreated);
+		});
+	};
+
+	this.upvote = function(post){
+		// using string literals to place the post id as part of route url
+		var putUrl = `posts/${post._id}/upvote`;
+		
+		// $http.* method returns a promise which you can call then on
+		// and specify the handlers for the case the promise is  in pending
+		// state, fulfilled, rejected.
+		$http.put(putUrl).then(
+			function successCallBack(response){
+				post.upvotes += 1;
+			},
+			function errorCallback(response){
+
+			}
+		);
+	};
+
+	this.getPostById = function(postId){
+		var retVal = $http.get(`posts/${postId}`).then(
+			(response) => {
+				return response.data;
+			},
+			(response) => {
+
+			}
+		);
+
+		return retVal;
+	};
+
+	// the addComment function returns a HttpPromise, so the caller
+	// can call 'then' on the promise and setup success and error 
+	// handler
+	this.addComment = function(post, comment){
+		return $http.post(`/posts/${post._id}/comments`, comment);
+	};
+
+	this.upvoteComment = function(post, comment){
+		$http.put(`/posts/${post._id}/${comment._id}/upvote`).then(
+			(response) => {
+				comment.upvotes = response.data.upvotes;
+			},
+			(response) => {
+
+			}
+		);
+	}
 }]);
 
+/**
+ * Post controller depends on $scope, $stateParams variable which is injected by ui-router and the postsService
+ * $stateParams variable has 'id' property because thats how we specified in our route above
+ * @param  {[type]} $scope                       [description]
+ * @param  {[type]} $stateParams                 [description]
+ * @param  {[type]} postsService){		$scope.post [description]
+ * @return {[type]}                              [description]
+ */
+app.controller('PostsCtrlOld', [
+	'$scope', 
+	'$stateParams', 
+	'postsService',
+	function($scope, $stateParams, postsService){
+		$scope.post = postsService.posts[$stateParams.id];
+
+		$scope.addComment = function() {
+			if ($scope.body) {
+				$scope.post.comments.push(
+					{ author: 'user', body: $scope.body, upvotes: 0}
+				);
+			}
+			$scope.body = '';
+		};
+	}
+]);
 
 // This controller saves the data within itself which is not good
 // because data saved inside a controller is not exposed to other
@@ -154,7 +254,7 @@ app.service('postsService', ['$http', function($http){
 // 				$scope.link = '';
 // 			}
 // 		}
-// 		$scope.incrementUpvotes = function(post){
+// 		$scope.upvotePost = function(post){
 // 			post.upvotes += 1;
 // 		}
 // 	}
