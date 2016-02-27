@@ -107,13 +107,15 @@ app.controller('PostsCtrl', [
 		$scope.addComment = function() {
 			if ($scope.body) {
 
-				// addComment function returns a HttpPromse, must setup
-				// handlers here. 
+				// addComment function returns a HttpPromise, we can chain promise handlers
+				// when chaining multiple promise handlers, the return object of a previous
+				// handler will be passed in as a parameter in the next handler.
 				postsService.addComment(singlePostObj, { author: 'user', body: $scope.body }).then(
-					function successCallback(response){
-						singlePostObj.comments.push(response.data);
+					function successCallback(data){
+						console.log('here for chaining promise demo');
+						singlePostObj.comments.push(data);
 					},
-					function errorCallback(response){
+					function errorCallback(data){
 						//doesn't need to define this but here for tutorial
 					}
 				);
@@ -124,13 +126,17 @@ app.controller('PostsCtrl', [
 		$scope.upvoteComment = function(comment) {
 
 			// upvoteComment already has the handlers so no need here.
+			// you can chain promise here if you want. This like is also
+			// non-blocking because  postsService.upvoteComment(..) setups
+			// a HttpPromise to upvote comment. 
 			postsService.upvoteComment(singlePostObj, comment);
+			console.log(comment);
 		}
 	}
 ]);
 
 
-app.service('postsService', ['$http', function($http){
+app.service('postsService', ['$http', '$q', function($http, $q){
 	this.posts = [];
 
 	this.getAll = function(){
@@ -183,9 +189,24 @@ app.service('postsService', ['$http', function($http){
 
 	// the addComment function returns a HttpPromise, so the caller
 	// can call 'then' on the promise and setup success and error 
-	// handler
+	// handler. We also call then here so technically we are chaining
+	// promises. 
 	this.addComment = function(post, comment){
-		return $http.post(`/posts/${post._id}/comments`, comment);
+		return $http.post(`/posts/${post._id}/comments`, comment).then(
+			(response) => {
+				// here for chaining promise demo. the return object here will
+				// be passed into the next promise chain's sucessHandler. 
+				// In this case the caller sucess handler expects the comment
+				// not the response object from HttpPromise.
+				console.log('here for chaining promise demo');
+				return response.data;
+			},
+			(response) => {
+				// here for chaining promise demo, caller can setup error
+				// handler.
+				$q.reject(response.data);
+			}
+		); 
 	};
 
 	this.upvoteComment = function(post, comment){
